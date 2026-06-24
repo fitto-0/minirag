@@ -48,4 +48,14 @@ export const chatAPI = {
   query: (data) => api.post('/chat/query', data),
 };
 
+export const chatsAPI = {
+  getAll: () => api.get('/chats'),
+  getOne: (id) => api.get(`/chats/${id}`),
+  create: (data) => api.post('/chats', data),
+  update: (id, data) => api.put(`/chats/${id}`, data),
+  delete: (id) => api.delete(`/chats/${id}`),
+  addMessage: (chatId, data) => api.post(`/chats/${chatId}/messages`, data),
+  editMessage: (chatId, messageId, data) => api.put(`/chats/${chatId}/messages/${messageId}`, data),
+};
+
 export default api;

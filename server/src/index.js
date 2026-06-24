@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const pdfRoutes = require('./routes/pdf');
 const chatRoutes = require('./routes/chat');
+const chatsRoutes = require('./routes/chats');
 
 const app = express();
 const BASE_PORT = parseInt(process.env.PORT, 10) || 5000;
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/pdfs', pdfRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/chats', chatsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
