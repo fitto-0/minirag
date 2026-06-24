@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #eef0f4;
+  color: #2d3138;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c8cbd0;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b0b3b8;
+}
+
+@layer components {
+  .neu-card {
+    background: #eef0f4;
+    border-radius: 16px;
+    box-shadow: 8px 8px 16px #c8cbd0, -8px -8px 16px #ffffff;
+  }
+
+  .neu-card-pressed {
+    background: #eef0f4;
+    border-radius: 16px;
+    box-shadow: inset 4px 4px 8px #c8cbd0, inset -4px -4px 8px #ffffff;
+  }
+
+  .neu-button {
+    background: #eef0f4;
+    border-radius: 12px;
+    box-shadow: 6px 6px 12px #c8cbd0, -6px -6px 12px #ffffff;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+  }
+
+  .neu-button:hover {
+    box-shadow: 4px 4px 8px #c8cbd0, -4px -4px 8px #ffffff;
+  }
+
+  .neu-button:active {
+    box-shadow: inset 3px 3px 6px #c8cbd0, inset -3px -3px 6px #ffffff;
+  }
+
+  .neu-input {
+    background: #eef0f4;
+    border-radius: 12px;
+    box-shadow: inset 3px 3px 6px #c8cbd0, inset -3px -3px 6px #ffffff;
+    border: none;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .neu-input:focus {
+    box-shadow: inset 4px 4px 8px #c0c3c8, inset -4px -4px 8px #ffffff;
+  }
+}
