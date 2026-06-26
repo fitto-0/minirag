@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.post('/query', protect, async (req, res) => {
   try {
-    const { question, pdfId } = req.body;
+    const { question, pdfId, conversationHistory } = req.body;
 
     if (!question) {
       return res.status(400).json({ message: 'Question is required' });
@@ -41,7 +41,7 @@ router.post('/query', protect, async (req, res) => {
     scored.sort((a, b) => b.score - a.score);
     const topChunks = scored.slice(0, 5);
 
-    const answer = await queryGroq(topChunks, question);
+    const answer = await queryGroq(topChunks, question, conversationHistory || []);
 
     res.json({
       answer,

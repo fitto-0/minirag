@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Trash2, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, Trash2, Clock, CheckCircle, AlertCircle, Eye } from 'lucide-react';
 
 const statusConfig = {
   ready: { icon: CheckCircle, color: 'text-green-500' },
@@ -8,7 +8,7 @@ const statusConfig = {
   failed: { icon: AlertCircle, color: 'text-red-500' },
 };
 
-export default function DocumentCard({ pdf, onDelete, onSelect, selected }) {
+export default function DocumentCard({ pdf, onDelete, onSelect, selected, onView }) {
   const StatusIcon = statusConfig[pdf.status]?.icon || AlertCircle;
   const statusColor = statusConfig[pdf.status]?.color || 'text-neu-muted';
 
@@ -40,6 +40,15 @@ export default function DocumentCard({ pdf, onDelete, onSelect, selected }) {
             <StatusIcon size={12} />
             <span className="capitalize">{pdf.status}</span>
           </div>
+          {pdf.status === 'ready' && onView && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onView?.(pdf); }}
+              className="neu-button p-1.5"
+              title="View PDF"
+            >
+              <Eye size={14} className="text-neu-muted hover:text-neu-accent" />
+            </button>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); onDelete?.(pdf._id); }}
             className="neu-button p-1.5"

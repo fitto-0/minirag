@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileText, Loader } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import DocumentCard from '../components/DocumentCard';
+import PdfViewer from '../components/PdfViewer';
 import { pdfAPI } from '../api/axios';
 
 export default function Dashboard() {
@@ -10,6 +11,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
+  const [viewingPdf, setViewingPdf] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -54,6 +56,10 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Delete failed:', err);
     }
+  };
+
+  const handleView = (pdf) => {
+    setViewingPdf(pdf);
   };
 
   return (
@@ -111,12 +117,21 @@ export default function Dashboard() {
                   onDelete={handleDelete}
                   onSelect={(p) => setSelectedId(p._id === selectedId ? null : p._id)}
                   selected={pdf._id === selectedId}
+                  onView={handleView}
                 />
               ))}
             </AnimatePresence>
           </div>
         )}
       </div>
+
+      {viewingPdf && (
+        <PdfViewer
+          pdfId={viewingPdf._id}
+          pdfName={viewingPdf.originalName}
+          onClose={() => setViewingPdf(null)}
+        />
+      )}
     </div>
   );
 }

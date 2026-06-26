@@ -19,6 +19,7 @@ export default function Chat() {
   const [selectedPdf, setSelectedPdf] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef(null);
+  const initialLoadDone = useRef(false);
 
   useEffect(() => {
     pdfAPI.getAll().then(res => {
@@ -31,10 +32,11 @@ export default function Chat() {
   }, [currentChat?.messages]);
 
   useEffect(() => {
-    if (!currentChat && chats.length > 0) {
+    if (!initialLoadDone.current && chats.length > 0) {
+      initialLoadDone.current = true;
       selectChat(chats[0]._id);
     }
-  }, [chats, currentChat, selectChat]);
+  }, [chats, selectChat]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,16 +48,18 @@ export default function Chat() {
 
     let chat = currentChat;
     if (!chat) {
-      chat = newChat();
+      chat = await newChat();
     }
 
     const sentMsg = await addMessage('user', userText);
 
-    if (currentChat?.messages.length === 0) {
-    }
-
     try {
-      const res = await chatAPI.query({ question: userText, pdfId: selectedPdf || undefined });
+      const conversationHistory = currentChat?.messages || [];
+      const res = await chatAPI.query({ 
+        question: userText, 
+        pdfId: selectedPdf || undefined,
+        conversationHistory 
+      });
       await addMessage('assistant', res.data.answer, res.data.sources);
     } catch (err) {
       await addMessage('assistant', err.response?.data?.message || 'Failed to get response. Please try again.');
@@ -68,9 +72,9 @@ export default function Chat() {
     editMessage(messageId, newContent);
   };
 
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
     closeChat();
-    newChat();
+    await newChat();
     setSidebarOpen(true);
   };
 

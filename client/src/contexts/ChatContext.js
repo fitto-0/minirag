@@ -75,7 +75,7 @@ export function ChatProvider({ children }) {
     );
   }, [chats, saveToStorage]);
 
-  const newChat = useCallback(() => {
+  const newChat = useCallback(async () => {
     const localChat = {
       _id: generateId(),
       title: 'New Chat',
@@ -90,11 +90,15 @@ export function ChatProvider({ children }) {
     });
 
     if (user) {
-      chatsAPI.create({ title: 'New Chat' }).then(res => {
+      try {
+        const res = await chatsAPI.create({ title: 'New Chat' });
         const serverChat = res.data.chat;
         setCurrentChat(serverChat);
         setChats(prev => prev.map(c => c._id === localChat._id ? serverChat : c));
-      }).catch(() => {});
+        return serverChat;
+      } catch (err) {
+        return localChat;
+      }
     }
 
     return localChat;

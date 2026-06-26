@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const Pdf = require('../models/Pdf');
 const Chunk = require('../models/Chunk');
 const { protect } = require('../middleware/auth');
@@ -71,6 +72,19 @@ router.delete('/:id', protect, async (req, res) => {
     await Chunk.deleteMany({ pdfId: pdf._id });
 
     res.json({ message: 'PDF deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/:id/view', protect, async (req, res) => {
+  try {
+    const pdf = await Pdf.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!pdf) {
+      return res.status(404).json({ message: 'PDF not found' });
+    }
+
+    res.sendFile(path.resolve(pdf.storedPath));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
