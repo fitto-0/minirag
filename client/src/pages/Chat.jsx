@@ -51,10 +51,12 @@ export default function Chat() {
       chat = await newChat();
     }
 
-    const sentMsg = await addMessage('user', userText);
+    const existingMessages = chat?.messages || [];
+    await addMessage('user', userText);
+
+    const conversationHistory = [...existingMessages, { role: 'user', content: userText }];
 
     try {
-      const conversationHistory = currentChat?.messages || [];
       const res = await chatAPI.query({ 
         question: userText, 
         pdfId: selectedPdf || undefined,

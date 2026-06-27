@@ -90,15 +90,21 @@ export function ChatProvider({ children }) {
     });
 
     if (user) {
-      try {
-        const res = await chatsAPI.create({ title: 'New Chat' });
+      chatsAPI.create({ title: 'New Chat' }).then(res => {
         const serverChat = res.data.chat;
-        setCurrentChat(serverChat);
-        setChats(prev => prev.map(c => c._id === localChat._id ? serverChat : c));
-        return serverChat;
-      } catch (err) {
-        return localChat;
-      }
+        setCurrentChat(prev => {
+          if (prev?._id === localChat._id) {
+            return { ...prev, _id: serverChat._id };
+          }
+          return prev;
+        });
+        setChats(prev => prev.map(c => {
+          if (c._id === localChat._id) {
+            return { ...c, _id: serverChat._id };
+          }
+          return c;
+        }));
+      }).catch(() => {});
     }
 
     return localChat;

@@ -11,7 +11,19 @@ async function queryGroq(contextChunks, userQuestion, conversationHistory = []) 
 
   const contextText = contextChunks.map(c => c.text).join('\n\n');
 
-  const systemPrompt = `You are a precise document analysis assistant. Answer the user's question based ONLY on the provided document context. If the answer cannot be found in the context, say "I cannot find information about that in the provided document." Do not make up or infer information beyond what is explicitly stated. Maintain context from the conversation history when relevant.`;
+  const systemPrompt = `You are an intelligent document analysis assistant with strong reasoning capabilities. Your task is to answer the user's question based primarily on the provided document context.
+
+Guidelines:
+1. Use the document context as your primary source of information
+2. Synthesize information from multiple context chunks when relevant
+3. Provide clear, well-structured answers with supporting details from the text
+4. If the answer isn't explicitly in the context, state that clearly and provide the most relevant related information
+5. Use conversation history to maintain context and reference previous exchanges
+6. Be thorough but concise - focus on the most relevant information
+7. When appropriate, organize complex answers with bullet points or numbered lists
+8. If you need to make reasonable inferences, clearly state them as such
+
+Remember: Your goal is to be helpful, accurate, and provide the best possible answer based on the available information.`;
 
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -28,8 +40,8 @@ async function queryGroq(contextChunks, userQuestion, conversationHistory = []) 
       {
         model: GROQ_MODEL,
         messages,
-        temperature: 0.1,
-        max_tokens: 1024,
+        temperature: 0.3,
+        max_tokens: 2048,
       },
       {
         headers: {

@@ -12,13 +12,13 @@ async function getGoogleEmbedding(text) {
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/${GOOGLE_EMBEDDING_MODEL}:embedContent?key=${apiKey}`,
       {
-        model: `models/${GOOGLE_EMBEDDING_MODEL}`,
-        content: { parts: [{ text }] },
+        content: {
+          parts: [{ text }]
+        }
       }
     );
     return response.data.embedding.values;
   } catch (error) {
-    console.warn('Google embedding failed, using fallback:', error.message);
     return generateFallbackEmbedding(text);
   }
 }
