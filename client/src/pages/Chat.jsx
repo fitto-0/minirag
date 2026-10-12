@@ -1,24 +1,93 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Loader, MessageSquare, Plus, X, Trash2, History } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { ArrowUp, Loader, Plus, X, Trash2, PanelLeft, FileText, Sparkles, MessageSquare } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import ChatMessage from '../components/ChatMessage';
 import { useChat } from '../contexts/ChatContext';
 import { chatAPI, pdfAPI } from '../api/axios';
 
+const suggestions = [
+  'Summarize this document in 3 points',
+  'What are the key dates mentioned?',
+  'List the main people or companies involved',
+  'What are the most important numbers?',
+];
+
+function HistoryPanel({ chats, currentChat, onSelect, onDelete, onNew, onClose }) {
+  return (
+    <div className="neu-card p-3 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-3 px-1">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-neu-muted">History</h2>
+        {onClose && (
+          <button onClick={onClose} className="neu-button p-1.5 lg:hidden" aria-label="Close history">
+            <X size={14} className="text-neu-muted" />
+          </button>
+        )}
+      </div>
+
+      <button
+        onClick={onNew}
+        className="w-full mb-3 py-2.5 rounded-xl bg-ink text-white flex items-center justify-center gap-2 text-sm font-medium hover:bg-neu-accent transition-colors"
+      >
+        <Plus size={15} />
+        New chat
+      </button>
+
+      <div className="flex-1 overflow-y-auto space-y-1 min-h-0 -mx-1 px-1">
+        {chats.length === 0 ? (
+          <p className="text-xs text-neu-muted text-center py-6">No chats yet</p>
+        ) : (
+          chats.map((chat) => {
+            const active = currentChat?._id === chat._id;
+            return (
+              <div key={chat._id} className="relative flex items-center group">
+                {active && (
+                  <motion.span
+                    layoutId="history-active"
+                    className="absolute inset-0 rounded-xl bg-marker/70"
+                    transition={{ type: 'spring', stiffness: 400, damping: 34 }}
+                  />
+                )}
+                <button
+                  onClick={() => onSelect(chat._id)}
+                  className={`relative flex-1 min-w-0 text-left pl-3 pr-9 py-2.5 rounded-xl text-[13px] truncate transition-colors ${
+                    active ? 'text-ink font-medium' : 'text-neu-text hover:bg-neu-dark/40'
+                  }`}
+                >
+                  {chat.title}
+                </button>
+                <button
+                  onClick={() => onDelete(chat._id)}
+                  className="absolute right-1.5 p-1.5 rounded-lg opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:bg-coral/15 transition-all"
+                  aria-label="Delete chat"
+                >
+                  <Trash2 size={13} className="text-neu-muted hover:text-coral" />
+                </button>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Chat() {
   const {
-    chats, currentChat, loading,
+    chats, currentChat,
     newChat, closeChat, selectChat,
     addMessage, editMessage, deleteChat,
   } = useChat();
+  const location = useLocation();
 
   const [question, setQuestion] = useState('');
   const [sending, setSending] = useState(false);
   const [pdfs, setPdfs] = useState([]);
-  const [selectedPdf, setSelectedPdf] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedPdf, setSelectedPdf] = useState(location.state?.pdfId || '');
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
   const initialLoadDone = useRef(false);
 
   useEffect(() => {
@@ -28,21 +97,33 @@ export default function Chat() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [currentChat?.messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [currentChat?.messages, sending]);
 
   useEffect(() => {
+    // Coming from "Ask" on a document: start fresh instead of reopening the last chat
+    if (location.state?.pdfId) {
+      initialLoadDone.current = true;
+      return;
+    }
     if (!initialLoadDone.current && chats.length > 0) {
       initialLoadDone.current = true;
       selectChat(chats[0]._id);
     }
-  }, [chats, selectChat]);
+  }, [chats, selectChat, location.state]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!question.trim() || sending) return;
+  // Auto-grow the composer
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [question]);
 
-    const userText = question.trim();
+  const sendQuestion = async (text) => {
+    const userText = text.trim();
+    if (!userText || sending) return;
+
     setQuestion('');
     setSending(true);
 
@@ -57,16 +138,29 @@ export default function Chat() {
     const conversationHistory = [...existingMessages, { role: 'user', content: userText }];
 
     try {
-      const res = await chatAPI.query({ 
-        question: userText, 
+      const res = await chatAPI.query({
+        question: userText,
         pdfId: selectedPdf || undefined,
-        conversationHistory 
+        conversationHistory
       });
       await addMessage('assistant', res.data.answer, res.data.sources);
     } catch (err) {
       await addMessage('assistant', err.response?.data?.message || 'Failed to get response. Please try again.');
     } finally {
       setSending(false);
+      inputRef.current?.focus();
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    sendQuestion(question);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendQuestion(question);
     }
   };
 
@@ -77,127 +171,161 @@ export default function Chat() {
   const handleNewChat = async () => {
     closeChat();
     await newChat();
-    setSidebarOpen(true);
+    setDrawerOpen(false);
+    inputRef.current?.focus();
+  };
+
+  const handleSelect = (id) => {
+    selectChat(id);
+    setDrawerOpen(false);
+  };
+
+  const selectedName = pdfs.find((p) => p._id === selectedPdf)?.originalName;
+  const isEmpty = !currentChat || currentChat.messages.length === 0;
+
+  const historyProps = {
+    chats,
+    currentChat,
+    onSelect: handleSelect,
+    onDelete: deleteChat,
+    onNew: handleNewChat,
   };
 
   return (
-    <div className="min-h-screen bg-[#eef0f4] flex flex-col">
+    <div className="h-[100dvh] bg-neu-bg flex flex-col overflow-hidden">
       <Navbar />
 
-      <div className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 pb-6 flex gap-4 min-h-0">
+      <div className="flex-1 min-h-0 max-w-6xl mx-auto w-full px-3 sm:px-4 pb-3 sm:pb-4 flex gap-4">
+        {/* Desktop history */}
+        <aside className="hidden lg:block w-[260px] flex-shrink-0 min-h-0">
+          <HistoryPanel {...historyProps} />
+        </aside>
+
+        {/* Mobile history drawer */}
         <AnimatePresence>
-          {sidebarOpen && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 260, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              className="flex-shrink-0 overflow-hidden"
-            >
-              <div className="neu-card p-3 w-[260px] flex flex-col max-h-[calc(100vh-140px)]">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <History size={16} className="text-neu-accent" />
-                    <h2 className="text-sm font-medium text-neu-text">History</h2>
-                  </div>
-                  <button onClick={handleNewChat} className="neu-button p-1.5">
-                    <Plus size={14} className="text-neu-accent" />
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
-                  {chats.length === 0 ? (
-                    <p className="text-xs text-neu-muted text-center py-4">No chats yet</p>
-                  ) : (
-                    chats.map((chat) => (
-                      <div key={chat._id} className="flex items-center gap-1 group">
-                        <button
-                          onClick={() => selectChat(chat._id)}
-                          className={`flex-1 text-left px-3 py-2 rounded-xl text-xs font-medium truncate transition-all ${
-                            currentChat?._id === chat._id
-                              ? 'bg-neu-accent text-white'
-                              : 'hover:bg-neu-dark/20 text-neu-text'
-                          }`}
-                        >
-                          {chat.title}
-                        </button>
-                        <button
-                          onClick={() => deleteChat(chat._id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity neu-button p-1"
-                        >
-                          <Trash2 size={12} className="text-neu-muted hover:text-red-500" />
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-neu-dark/20">
-                  <button
-                    onClick={handleNewChat}
-                    className="w-full neu-button py-2 flex items-center justify-center gap-2 text-xs font-medium text-neu-accent"
-                  >
-                    <Plus size={14} />
-                    New Chat
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+          {drawerOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setDrawerOpen(false)}
+                className="fixed inset-0 z-50 bg-ink/30 backdrop-blur-sm lg:hidden"
+              />
+              <motion.aside
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+                className="fixed z-50 inset-y-0 left-0 w-[82%] max-w-[300px] p-3 lg:hidden"
+              >
+                <HistoryPanel {...historyProps} onClose={() => setDrawerOpen(false)} />
+              </motion.aside>
+            </>
           )}
         </AnimatePresence>
 
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="neu-button p-2"
-              >
-                <History size={16} className="text-neu-muted" />
-              </button>
+        <section className="flex-1 min-w-0 min-h-0 neu-card flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center gap-2 px-3 sm:px-5 py-3 border-b border-neu-dark">
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="neu-button p-2 lg:hidden"
+              aria-label="Open history"
+            >
+              <PanelLeft size={16} className="text-neu-muted" />
+            </button>
 
-              {currentChat && (
-                <>
-                  <span className="text-sm font-medium text-neu-text truncate flex-1">
-                    {currentChat.title}
-                  </span>
-                  <button
-                    onClick={closeChat}
-                    className="neu-button p-2"
-                    title="Close chat"
-                  >
-                    <X size={16} className="text-neu-muted" />
-                  </button>
-                </>
-              )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-neu-text truncate">
+                {currentChat?.title || 'New conversation'}
+              </p>
             </div>
 
-            <select
-              value={selectedPdf}
-              onChange={(e) => setSelectedPdf(e.target.value)}
-              className="neu-input text-xs px-3 py-2 sm:ml-auto max-w-[160px]"
-            >
-              <option value="">All Documents</option>
-              {pdfs.map((pdf) => (
-                <option key={pdf._id} value={pdf._id}>{pdf.originalName}</option>
-              ))}
-            </select>
+            <label className="relative flex items-center gap-1.5 rounded-xl border border-neu-dark bg-neu-bg pl-2.5 pr-1 py-1 max-w-[46%] sm:max-w-[240px]">
+              <FileText size={13} className="text-coral flex-shrink-0" />
+              <select
+                value={selectedPdf}
+                onChange={(e) => setSelectedPdf(e.target.value)}
+                className="bg-transparent text-xs text-neu-text py-1 pr-1 outline-none cursor-pointer min-w-0 w-full truncate"
+                aria-label="Document to ask about"
+              >
+                <option value="">All documents</option>
+                {pdfs.map((pdf) => (
+                  <option key={pdf._id} value={pdf._id}>{pdf.originalName}</option>
+                ))}
+              </select>
+            </label>
+
+            {currentChat && (
+              <button
+                onClick={closeChat}
+                className="neu-button p-2"
+                title="Close chat"
+                aria-label="Close chat"
+              >
+                <X size={15} className="text-neu-muted" />
+              </button>
+            )}
           </div>
 
-          <div className="neu-card flex-1 p-4 mb-4 overflow-y-auto max-h-[calc(100vh-200px)]">
-            {!currentChat || currentChat.messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center">
-                <MessageSquare size={40} className="text-neu-muted/30 mb-3" />
-                <h2 className="text-lg font-medium text-neu-text mb-1">Ask a question</h2>
-                <p className="text-sm text-neu-muted max-w-sm">
-                  {chats.length > 0 ? 'Select a chat or start a new one' : 'Start a new conversation about your documents'}
-                </p>
-                <button onClick={handleNewChat} className="neu-button mt-4 px-5 py-2.5 flex items-center gap-2 text-sm bg-neu-accent text-white shadow-neu-accent">
-                  <Plus size={16} />
-                  New Chat
-                </button>
+          {/* Messages */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 py-5 sm:py-6">
+            {isEmpty ? (
+              <div className="h-full flex flex-col items-center justify-center text-center px-2">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                  className="relative w-16 h-16 mb-6"
+                >
+                  <div className="absolute inset-0 rounded-2xl bg-marker rotate-6" />
+                  <div className="absolute inset-0 rounded-2xl bg-ink flex items-center justify-center">
+                    <Sparkles size={24} className="text-white" />
+                  </div>
+                </motion.div>
+                <motion.h2
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="font-display text-3xl sm:text-4xl text-neu-text"
+                >
+                  What would you like to <span className="italic">know</span>?
+                </motion.h2>
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.18 }}
+                  className="text-sm text-neu-muted mt-2 max-w-sm"
+                >
+                  {pdfs.length === 0
+                    ? 'Upload a PDF on the Documents page first, then ask it anything.'
+                    : selectedName
+                      ? <>Asking about <span className="marker text-neu-text">{selectedName}</span></>
+                      : `Asking across all ${pdfs.length} of your documents.`}
+                </motion.p>
+
+                {pdfs.length > 0 && (
+                  <div className="mt-8 grid sm:grid-cols-2 gap-2 w-full max-w-lg">
+                    {suggestions.map((s, i) => (
+                      <motion.button
+                        key={s}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.25 + i * 0.06 }}
+                        whileHover={{ y: -2 }}
+                        onClick={() => sendQuestion(s)}
+                        disabled={sending}
+                        className="text-left text-[13px] text-neu-text px-4 py-3 rounded-xl border border-neu-dark bg-neu-bg hover:bg-neu-light hover:border-neu-muted/40 transition-colors"
+                      >
+                        {s}
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-5 max-w-3xl mx-auto">
                 {currentChat.messages.map((msg, i) => (
                   <ChatMessage
                     key={msg._id || i}
@@ -206,44 +334,63 @@ export default function Chat() {
                   />
                 ))}
 
-                {sending && (
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-neu-text flex items-center justify-center">
-                      <Loader size={16} className="text-white animate-spin" />
-                    </div>
-                    <div className="neu-card px-4 py-3">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 rounded-full bg-neu-muted/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 rounded-full bg-neu-muted/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 rounded-full bg-neu-muted/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <AnimatePresence>
+                  {sending && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex gap-3"
+                    >
+                      <div className="w-8 h-8 rounded-xl bg-neu-accent flex items-center justify-center flex-shrink-0">
+                        <Sparkles size={15} className="text-white animate-pulse" />
                       </div>
-                    </div>
-                  </div>
-                )}
+                      <div className="rounded-2xl rounded-tl-md border border-neu-dark bg-neu-bg px-4 py-3 flex items-center gap-2.5">
+                        <div className="flex gap-1">
+                          {[0, 150, 300].map((d) => (
+                            <span key={d} className="w-1.5 h-1.5 rounded-full bg-neu-muted animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                          ))}
+                        </div>
+                        <span className="text-xs text-neu-muted">Reading your documents</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <div ref={messagesEndRef} />
               </div>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <input
-              type="text"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder={currentChat ? "Ask about your document..." : "Start a new chat..."}
-              className="neu-input flex-1 px-4 py-3 text-sm"
-              disabled={sending}
-            />
-            <button
-              type="submit"
-              disabled={sending || !question.trim()}
-              className="neu-button px-4 flex items-center justify-center bg-neu-accent text-white disabled:opacity-50"
-            >
-              {sending ? <Loader size={18} className="animate-spin" /> : <Send size={18} />}
-            </button>
+          {/* Composer */}
+          <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-t border-neu-dark">
+            <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border border-neu-dark bg-neu-bg p-1.5 pl-4 focus-within:border-neu-accent focus-within:ring-4 focus-within:ring-neu-accent/10 transition-all">
+              <MessageSquare size={16} className="text-neu-muted mb-3 flex-shrink-0 hidden sm:block" />
+              <textarea
+                ref={inputRef}
+                rows={1}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={selectedName ? `Ask about ${selectedName}…` : 'Ask about your documents…'}
+                className="flex-1 resize-none bg-transparent outline-none text-sm py-2.5 max-h-40 placeholder:text-neu-muted/80"
+                disabled={sending}
+              />
+              <motion.button
+                whileTap={{ scale: 0.92 }}
+                type="submit"
+                disabled={sending || !question.trim()}
+                className="w-10 h-10 rounded-xl flex items-center justify-center bg-ink text-white hover:bg-neu-accent transition-colors disabled:opacity-30 disabled:hover:bg-ink flex-shrink-0"
+                aria-label="Send"
+              >
+                {sending ? <Loader size={17} className="animate-spin" /> : <ArrowUp size={18} />}
+              </motion.button>
+            </div>
+            <p className="hidden sm:block text-center text-[11px] text-neu-muted mt-2">
+              Answers come only from your documents · Enter to send, Shift + Enter for a new line
+            </p>
           </form>
-        </div>
+        </section>
       </div>
     </div>
   );

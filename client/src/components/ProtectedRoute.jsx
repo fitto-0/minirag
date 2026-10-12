@@ -7,7 +7,7 @@ export default function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#eef0f4]">
+      <div className="min-h-screen flex items-center justify-center bg-neu-bg">
         <div className="neu-card p-8">
           <div className="w-8 h-8 border-4 border-neu-accent border-t-transparent rounded-full animate-spin mx-auto" />
         </div>

@@ -8,16 +8,27 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #eef0f4;
-  color: #2d3138;
+  background-color: #f4f2ee;
+  color: #17161c;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: #ffe27a;
+  color: #17161c;
 }
 
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -25,54 +36,119 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c8cbd0;
+  background: #d9d4ca;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #b0b3b8;
+  background: #c2bcb0;
 }
 
 @layer components {
   .neu-card {
-    background: #eef0f4;
-    border-radius: 16px;
-    box-shadow: 8px 8px 16px #c8cbd0, -8px -8px 16px #ffffff;
+    background: #fbfaf7;
+    border-radius: 18px;
+    border: 1px solid #e4e0d8;
+    box-shadow: 0 1px 2px rgba(23, 22, 28, 0.04), 0 8px 24px -12px rgba(23, 22, 28, 0.12);
   }
 
   .neu-card-pressed {
-    background: #eef0f4;
-    border-radius: 16px;
-    box-shadow: inset 4px 4px 8px #c8cbd0, inset -4px -4px 8px #ffffff;
+    background: #efece6;
+    border-radius: 14px;
+    border: 1px solid #e4e0d8;
   }
 
   .neu-button {
-    background: #eef0f4;
+    background: #fbfaf7;
     border-radius: 12px;
-    box-shadow: 6px 6px 12px #c8cbd0, -6px -6px 12px #ffffff;
-    transition: all 0.2s ease;
-    border: none;
+    border: 1px solid #e4e0d8;
+    box-shadow: 0 1px 2px rgba(23, 22, 28, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
     cursor: pointer;
   }
 
   .neu-button:hover {
-    box-shadow: 4px 4px 8px #c8cbd0, -4px -4px 8px #ffffff;
+    border-color: #d9d4ca;
+    box-shadow: 0 4px 12px -6px rgba(23, 22, 28, 0.2);
+    transform: translateY(-1px);
   }
 
   .neu-button:active {
-    box-shadow: inset 3px 3px 6px #c8cbd0, inset -3px -3px 6px #ffffff;
+    transform: translateY(0);
+    box-shadow: inset 0 1px 2px rgba(23, 22, 28, 0.1);
+  }
+
+  .neu-button:disabled {
+    transform: none;
+    cursor: not-allowed;
+  }
+
+  .neu-button.bg-neu-accent {
+    border-color: transparent;
+  }
+
+  .neu-button.bg-neu-accent:hover {
+    background-color: #2733b8;
   }
 
   .neu-input {
-    background: #eef0f4;
+    background: #fbfaf7;
     border-radius: 12px;
-    box-shadow: inset 3px 3px 6px #c8cbd0, inset -3px -3px 6px #ffffff;
-    border: none;
+    border: 1px solid #e4e0d8;
     outline: none;
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
   .neu-input:focus {
-    box-shadow: inset 4px 4px 8px #c0c3c8, inset -4px -4px 8px #ffffff;
+    border-color: #3442d9;
+    box-shadow: 0 0 0 4px rgba(52, 66, 217, 0.12);
+  }
+
+  /* Highlighter-pen underline, the visual motif of the app */
+  .marker {
+    background-image: linear-gradient(transparent 55%, #ffe27a 55%, #ffe27a 92%, transparent 92%);
+    padding: 0 0.12em;
+  }
+
+  /* Highlighter that sweeps in and follows text across line breaks */
+  .marker-sweep {
+    background-image: linear-gradient(#ffe27a, #ffe27a);
+    background-repeat: no-repeat;
+    background-position: 0 88%;
+    background-size: 0% 62%;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    padding: 0 0.15em;
+    margin: 0 -0.15em;
+    transition: background-size 0.7s cubic-bezier(0.22, 1, 0.36, 1), color 0.5s ease;
+  }
+
+  .marker-sweep.is-marked {
+    background-size: 100% 62%;
+  }
+
+  .dot-grid {
+    background-image: radial-gradient(rgba(23, 22, 28, 0.09) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

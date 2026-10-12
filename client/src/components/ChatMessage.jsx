@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bot, User, Pencil, Check, X } from 'lucide-react';
+import { Sparkles, Pencil, Check, X } from 'lucide-react';
 
 export default function ChatMessage({ message, onEdit }) {
   const isUser = message.role === 'user';
@@ -21,67 +21,61 @@ export default function ChatMessage({ message, onEdit }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`flex gap-3 group ${isUser ? 'flex-row-reverse' : ''}`}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className={`flex gap-3 group ${isUser ? 'justify-end' : ''}`}
     >
-      <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
-        isUser ? 'bg-neu-accent' : 'bg-neu-text'
-      }`}>
-        {isUser ? <User size={16} className="text-white" /> : <Bot size={16} className="text-white" />}
-      </div>
+      {!isUser && (
+        <div className="w-8 h-8 rounded-xl bg-neu-accent flex items-center justify-center flex-shrink-0">
+          <Sparkles size={15} className="text-white" />
+        </div>
+      )}
 
-      <div className={`max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
+      <div className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
         {editing ? (
-          <div className="neu-card-pressed p-2">
+          <div className="w-[min(480px,80vw)] rounded-2xl border border-neu-accent bg-neu-light p-2 ring-4 ring-neu-accent/10">
             <textarea
               value={editText}
               onChange={(e) => setEditText(e.target.value)}
-              className="neu-card-pressed w-full p-2 text-sm rounded-xl resize-none outline-none bg-transparent"
+              className="w-full p-2 text-sm resize-none outline-none bg-transparent"
               rows={3}
               autoFocus
             />
-            <div className="flex gap-1 mt-2 justify-end">
-              <button onClick={handleCancel} className="neu-button p-1.5">
+            <div className="flex gap-1.5 justify-end">
+              <button onClick={handleCancel} className="neu-button p-1.5" aria-label="Cancel edit">
                 <X size={14} className="text-neu-muted" />
               </button>
-              <button onClick={handleSave} className="neu-button p-1.5 bg-neu-accent">
+              <button onClick={handleSave} className="p-1.5 rounded-lg bg-ink hover:bg-neu-accent transition-colors" aria-label="Save edit">
                 <Check size={14} className="text-white" />
               </button>
             </div>
           </div>
         ) : (
-          <div className={`neu-card px-4 py-3 text-sm leading-relaxed relative ${
-            isUser ? 'bg-neu-accent/5' : ''
-          }`}>
-            {message.content}
-            {message.isEdited && (
-              <span className="text-xs text-neu-muted ml-2 italic">(edited)</span>
-            )}
+          <div className={`flex items-start gap-1.5 ${isUser ? 'flex-row-reverse' : ''}`}>
+            <div
+              className={`px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                isUser
+                  ? 'bg-ink text-white rounded-2xl rounded-tr-md'
+                  : 'bg-neu-bg border border-neu-dark text-neu-text rounded-2xl rounded-tl-md'
+              }`}
+            >
+              {message.content}
+              {message.isEdited && (
+                <span className={`text-[11px] ml-2 italic ${isUser ? 'text-white/50' : 'text-neu-muted'}`}>(edited)</span>
+              )}
+            </div>
             {isUser && onEdit && (
               <button
                 onClick={() => setEditing(true)}
-                className="absolute -right-8 top-2 opacity-0 group-hover:opacity-100 transition-opacity neu-button p-1"
+                className="mt-1.5 p-1.5 rounded-lg text-neu-muted hover:bg-neu-dark/50 hover:text-neu-text opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                aria-label="Edit message"
               >
-                <Pencil size={12} className="text-neu-muted" />
+                <Pencil size={13} />
               </button>
             )}
           </div>
         )}
-
-        {/*
-        
-        {message.sources && message.sources.length > 0 && (
-          <div className="mt-2 px-4 py-2">
-            <p className="text-xs text-neu-muted mb-1">Sources:</p>
-            {message.sources.map((source, i) => (
-              <div key={i} className="text-xs text-neu-muted/70 italic mb-0.5">
-                [{i + 1}] {source.text}...
-              </div>
-            ))}
-          </div>
-        )}
-        */}
       </div>
     </motion.div>
   );
