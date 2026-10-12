@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { chatsAPI } from '../api/axios';
 import { useAuth } from './AuthContext';
 
@@ -14,6 +14,10 @@ export function ChatProvider({ children }) {
   const { user } = useAuth();
   const [chats, setChats] = useState([]);
   const [currentChat, setCurrentChat] = useState(null);
+  // Always points at the latest current chat, so several calls made in a row
+  // (e.g. the question and then the answer) build on each other instead of
+  // on the stale value captured when the component last rendered.
+  const currentChatRef = useRef(null);
   const [loading, setLoading] = useState(true);
 
   const loadFromStorage = useCallback(() => {
@@ -24,7 +28,10 @@ export function ChatProvider({ children }) {
         setChats(parsed.chats || []);
         if (parsed.currentId) {
           const found = parsed.chats.find(c => c._id === parsed.currentId);
-          if (found) setCurrentChat(found);
+          if (found) {
+            currentChatRef.current = found;
+            setCurrentChat(found);
+          }
         }
       }
     } catch { /* ignore */ }
@@ -40,6 +47,7 @@ export function ChatProvider({ children }) {
   useEffect(() => {
     if (!user) {
       setChats([]);
+      currentChatRef.current = null;
       setCurrentChat(null);
       setLoading(false);
       return;
@@ -68,51 +76,43 @@ export function ChatProvider({ children }) {
     saveToStorage(chats, currentId);
   }, [chats, currentChat, user, saveToStorage]);
 
-  const syncChatToStorage = useCallback((chat) => {
-    saveToStorage(
-      chats.map(c => c._id === chat._id ? chat : c),
-      chat._id
-    );
-  }, [chats, saveToStorage]);
+  const setCurrent = useCallback((chat) => {
+    currentChatRef.current = chat;
+    setCurrentChat(chat);
+  }, []);
+
+  const upsertChat = useCallback((chat) => {
+    setChats(prev => (
+      prev.some(c => c._id === chat._id)
+        ? prev.map(c => (c._id === chat._id ? chat : c))
+        : [chat, ...prev]
+    ));
+  }, []);
 
   const newChat = useCallback(async () => {
-    const localChat = {
+    let chat = {
       _id: generateId(),
       title: 'New Chat',
       messages: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setCurrentChat(localChat);
-    setChats(prev => {
-      const exists = prev.find(c => c._id === localChat._id);
-      return exists ? prev : [localChat, ...prev];
-    });
 
     if (user) {
-      chatsAPI.create({ title: 'New Chat' }).then(res => {
-        const serverChat = res.data.chat;
-        setCurrentChat(prev => {
-          if (prev?._id === localChat._id) {
-            return { ...prev, _id: serverChat._id };
-          }
-          return prev;
-        });
-        setChats(prev => prev.map(c => {
-          if (c._id === localChat._id) {
-            return { ...c, _id: serverChat._id };
-          }
-          return c;
-        }));
-      }).catch(() => {});
+      try {
+        const res = await chatsAPI.create({ title: 'New Chat' });
+        chat = { ...res.data.chat, messages: res.data.chat.messages || [] };
+      } catch { /* keep the local chat */ }
     }
 
-    return localChat;
-  }, [user]);
+    setCurrent(chat);
+    upsertChat(chat);
+    return chat;
+  }, [user, setCurrent, upsertChat]);
 
   const closeChat = useCallback(() => {
-    setCurrentChat(null);
-  }, []);
+    setCurrent(null);
+  }, [setCurrent]);
 
   const selectChat = useCallback(async (chatId) => {
     const local = chats.find(c => c._id === chatId);
@@ -120,18 +120,19 @@ export function ChatProvider({ children }) {
       try {
         const res = await chatsAPI.getOne(chatId);
         const full = res.data.chat;
-        setCurrentChat(full);
+        setCurrent(full);
         setChats(prev => prev.map(c => c._id === chatId ? full : c));
       } catch {
-        setCurrentChat(local);
+        setCurrent(local);
       }
     } else {
-      setCurrentChat(local || null);
+      setCurrent(local || null);
     }
-  }, [chats]);
+  }, [chats, setCurrent]);
 
   const addMessage = useCallback(async (role, content, sources) => {
-    if (!currentChat) return null;
+    const chat = currentChatRef.current;
+    if (!chat) return null;
 
     const tempMsg = {
       _id: generateId(),
@@ -143,66 +144,75 @@ export function ChatProvider({ children }) {
     };
 
     const updated = {
-      ...currentChat,
-      messages: [...currentChat.messages, tempMsg],
+      ...chat,
+      messages: [...(chat.messages || []), tempMsg],
       updatedAt: new Date().toISOString(),
     };
 
-    if (currentChat.title === 'New Chat' && role === 'user') {
+    if (chat.title === 'New Chat' && role === 'user') {
       updated.title = content.substring(0, 50) + (content.length > 50 ? '...' : '');
     }
 
-    setCurrentChat(updated);
-    setChats(prev => prev.map(c => c._id === updated._id ? updated : c));
-    syncChatToStorage(updated);
+    setCurrent(updated);
+    upsertChat(updated);
 
-    if (user && !currentChat._id.startsWith('local_')) {
+    if (user && !chat._id.startsWith('local_')) {
       try {
-        await chatsAPI.addMessage(currentChat._id, { role, content, sources });
+        const res = await chatsAPI.addMessage(chat._id, { role, content, sources });
+        const saved = res.data.message;
+        // Swap the temporary id for the server one so the message can be edited later
+        const replaceId = (c) => ({
+          ...c,
+          messages: c.messages.map(m => (m._id === tempMsg._id ? { ...m, _id: saved._id } : m)),
+        });
+        if (currentChatRef.current?._id === chat._id) {
+          setCurrent(replaceId(currentChatRef.current));
+        }
+        setChats(prev => prev.map(c => (c._id === chat._id && c.messages ? replaceId(c) : c)));
       } catch { /* ignore */ }
-      if (updated.title !== currentChat.title) {
+      if (updated.title !== chat.title) {
         try {
-          await chatsAPI.update(currentChat._id, { title: updated.title });
+          await chatsAPI.update(chat._id, { title: updated.title });
         } catch { /* ignore */ }
       }
     }
 
     return tempMsg;
-  }, [currentChat, user, syncChatToStorage]);
+  }, [user, setCurrent, upsertChat]);
 
   const editMessage = useCallback(async (messageId, newContent) => {
-    if (!currentChat) return;
+    const chat = currentChatRef.current;
+    if (!chat) return;
 
     const updated = {
-      ...currentChat,
-      messages: currentChat.messages.map(m =>
+      ...chat,
+      messages: chat.messages.map(m =>
         m._id === messageId ? { ...m, content: newContent, isEdited: true } : m
       ),
       updatedAt: new Date().toISOString(),
     };
 
-    setCurrentChat(updated);
-    setChats(prev => prev.map(c => c._id === updated._id ? updated : c));
-    syncChatToStorage(updated);
+    setCurrent(updated);
+    upsertChat(updated);
 
-    if (user && !currentChat._id.startsWith('local_')) {
+    if (user && !chat._id.startsWith('local_') && !messageId.startsWith('local_')) {
       try {
-        await chatsAPI.editMessage(currentChat._id, messageId, { content: newContent });
+        await chatsAPI.editMessage(chat._id, messageId, { content: newContent });
       } catch { /* ignore */ }
     }
-  }, [currentChat, user, syncChatToStorage]);
+  }, [user, setCurrent, upsertChat]);
 
   const deleteChat = useCallback(async (chatId) => {
     setChats(prev => prev.filter(c => c._id !== chatId));
-    if (currentChat?._id === chatId) {
-      setCurrentChat(null);
+    if (currentChatRef.current?._id === chatId) {
+      setCurrent(null);
     }
     if (user && !chatId.startsWith('local_')) {
       try {
         await chatsAPI.delete(chatId);
       } catch { /* ignore */ }
     }
-  }, [currentChat, user]);
+  }, [user, setCurrent]);
 
   return (
     <ChatContext.Provider value={{

@@ -65,11 +65,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#eef0f4]">
       <Navbar />
-      <div className="max-w-4xl mx-auto px-6 py-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-6"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
         >
           <div>
             <h1 className="text-2xl font-bold text-neu-text">Your Documents</h1>
@@ -79,7 +79,7 @@ export default function Dashboard() {
             whileTap={{ scale: 0.97 }}
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="neu-button px-5 py-3 flex items-center gap-2 bg-neu-accent text-white font-medium shadow-neu-accent"
+            className="neu-button px-5 py-3 flex items-center justify-center gap-2 bg-neu-accent text-white font-medium shadow-neu-accent w-full sm:w-auto"
           >
             {uploading ? <Loader size={18} className="animate-spin" /> : <Upload size={18} />}
             {uploading ? 'Uploading...' : 'Upload PDF'}
@@ -101,7 +101,7 @@ export default function Dashboard() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="neu-card p-12 text-center"
+            className="neu-card p-8 sm:p-12 text-center"
           >
             <FileText size={48} className="text-neu-muted/40 mx-auto mb-4" />
             <h2 className="text-lg font-medium text-neu-text mb-2">No documents yet</h2>

@@ -17,7 +17,7 @@ export default function Chat() {
   const [sending, setSending] = useState(false);
   const [pdfs, setPdfs] = useState([]);
   const [selectedPdf, setSelectedPdf] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef(null);
   const initialLoadDone = useRef(false);
 
@@ -84,7 +84,7 @@ export default function Chat() {
     <div className="min-h-screen bg-[#eef0f4] flex flex-col">
       <Navbar />
 
-      <div className="flex-1 max-w-6xl mx-auto w-full px-6 pb-6 flex gap-4 min-h-0">
+      <div className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 pb-6 flex gap-4 min-h-0">
         <AnimatePresence>
           {sidebarOpen && (
             <motion.div
@@ -146,33 +146,35 @@ export default function Chat() {
         </AnimatePresence>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex items-center gap-2 mb-3">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="neu-button p-2"
-            >
-              <History size={16} className="text-neu-muted" />
-            </button>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="neu-button p-2"
+              >
+                <History size={16} className="text-neu-muted" />
+              </button>
 
-            {currentChat && (
-              <>
-                <span className="text-sm font-medium text-neu-text truncate flex-1">
-                  {currentChat.title}
-                </span>
-                <button
-                  onClick={closeChat}
-                  className="neu-button p-2"
-                  title="Close chat"
-                >
-                  <X size={16} className="text-neu-muted" />
-                </button>
-              </>
-            )}
+              {currentChat && (
+                <>
+                  <span className="text-sm font-medium text-neu-text truncate flex-1">
+                    {currentChat.title}
+                  </span>
+                  <button
+                    onClick={closeChat}
+                    className="neu-button p-2"
+                    title="Close chat"
+                  >
+                    <X size={16} className="text-neu-muted" />
+                  </button>
+                </>
+              )}
+            </div>
 
             <select
               value={selectedPdf}
               onChange={(e) => setSelectedPdf(e.target.value)}
-              className="neu-input text-xs px-3 py-2 ml-auto max-w-[160px]"
+              className="neu-input text-xs px-3 py-2 sm:ml-auto max-w-[160px]"
             >
               <option value="">All Documents</option>
               {pdfs.map((pdf) => (

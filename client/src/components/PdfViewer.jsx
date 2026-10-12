@@ -59,19 +59,19 @@ export default function PdfViewer({ pdfId, pdfName, onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
         onClick={onClose}
       >
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-white rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl"
+          className="bg-white rounded-2xl w-full max-w-5xl h-[90vh] sm:h-[85vh] flex flex-col shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 truncate flex-1">{pdfName}</h2>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 gap-2">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-800 truncate flex-1">{pdfName}</h2>
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               {pdfBlobUrl && (
                 <a
                   href={pdfBlobUrl}
@@ -102,7 +102,7 @@ export default function PdfViewer({ pdfId, pdfName, onClose }) {
             
             {error ? (
               <div className="absolute inset-0 flex items-center justify-center">
-                <p className="text-red-500">Failed to load PDF</p>
+                <p className="text-red-500 text-sm">Failed to load PDF</p>
               </div>
             ) : pdfBlobUrl ? (
               <iframe

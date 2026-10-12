@@ -21,13 +21,13 @@ export default function DocumentCard({ pdf, onDelete, onSelect, selected, onView
       className={`neu-card p-4 cursor-pointer transition-all ${selected ? 'ring-2 ring-neu-accent' : ''}`}
       onClick={() => onSelect?.(pdf)}
     >
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-neu-accent/10 flex items-center justify-center flex-shrink-0">
             <FileText size={20} className="text-neu-accent" />
           </div>
-          <div className="min-w-0">
-            <h3 className="font-medium text-neu-text truncate">{pdf.originalName}</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-medium text-neu-text truncate text-sm">{pdf.originalName}</h3>
             <p className="text-xs text-neu-muted mt-1">
               {(pdf.fileSize / 1024).toFixed(1)} KB
               {pdf.pageCount ? ` · ${pdf.pageCount} pages` : ''}
@@ -35,8 +35,8 @@ export default function DocumentCard({ pdf, onDelete, onSelect, selected, onView
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className={`flex items-center gap-1 text-xs ${statusColor}`}>
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <div className={`hidden sm:flex items-center gap-1 text-xs ${statusColor}`}>
             <StatusIcon size={12} />
             <span className="capitalize">{pdf.status}</span>
           </div>

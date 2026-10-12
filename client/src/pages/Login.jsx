@@ -24,17 +24,17 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#eef0f4] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#eef0f4] flex items-center justify-center p-4 sm:p-6">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="neu-card p-8 w-full max-w-md"
+        className="neu-card p-6 sm:p-8 w-full max-w-md"
       >
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-2xl bg-neu-accent flex items-center justify-center mx-auto mb-3">
             <FileText size={24} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-neu-text">Welcome Back</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-neu-text">Welcome Back</h1>
           <p className="text-neu-muted text-sm mt-1">Sign in to your account</p>
         </div>
 

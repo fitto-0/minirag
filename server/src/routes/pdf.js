@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const Pdf = require('../models/Pdf');
 const Chunk = require('../models/Chunk');
@@ -70,6 +71,8 @@ router.delete('/:id', protect, async (req, res) => {
     }
 
     await Chunk.deleteMany({ pdfId: pdf._id });
+
+    fs.unlink(pdf.storedPath, () => {});
 
     res.json({ message: 'PDF deleted' });
   } catch (error) {
